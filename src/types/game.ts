@@ -25,18 +25,13 @@ export type GameMode =
   | 'SPY_MODE'
   | 'CHAOS_MODE';
 
-export type Difficulty = 'EASY' | 'MEDIUM' | 'HARD' | 'EXTREME';
-
 export type Role = 'CITIZEN' | 'IMPOSTER' | 'SPY';
 
 export type Winner = 'CITIZENS' | 'IMPOSTER' | 'NONE';
 
 export interface WordEntry {
   word: string;
-  hintEasy: string;
-  hintMedium: string;
-  hintHard: string;
-  hintExtreme: string;
+  hint: string;
 }
 
 export interface Category {
@@ -58,7 +53,7 @@ export interface Player {
 export interface GameSettings {
   playerNames: string[];
   category: string;
-  difficulty: Difficulty;
+  categories?: string[];
   imposterCount: number;
   discussionTimer: number;
   votingTimer: number;
@@ -79,7 +74,7 @@ export interface GameResult {
   date: string;
   players: string[];
   category: string;
-  difficulty: Difficulty;
+  difficulty?: string;
   gameMode: GameMode;
   secretWord: string;
   winner: Winner;
@@ -120,7 +115,6 @@ export interface AppSettings {
   soundEffects: boolean;
   defaultDiscussionTimer: number;
   defaultVotingTimer: number;
-  defaultDifficulty: Difficulty;
   defaultImposterCount: number;
   recentWordProtectionCount: number;
   privacyMode: boolean;
@@ -152,7 +146,6 @@ export interface GameState {
   votingTimeLeft: number;
   chaosRule?: string;
   isPaused: boolean;
-  revealOrder?: number[];
 }
 
 export const GAME_MODE_CONFIG: Record<GameMode, { name: string; description: string; maxImposters: number; hasSpy: boolean; blind: boolean; unlockRequirement: string }> = {
@@ -174,13 +167,6 @@ export const CHAOS_RULES = [
   'Clues must be shorter than 5 words!',
   'Everyone closes eyes while giving clues!',
 ];
-
-export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
-  EASY: 'Easy',
-  MEDIUM: 'Medium',
-  HARD: 'Hard',
-  EXTREME: 'Extreme',
-};
 
 export const TIMER_OPTIONS = [
   { label: '30s', value: 30 },

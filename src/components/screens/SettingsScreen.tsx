@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '@/context/GameContext';
 import { getSettings, saveSettings, resetStatistics, clearGameHistory, clearRecentWords } from '@/lib/storage';
 import { playButtonClick } from '@/lib/sounds';
-import type { AppSettings, Difficulty } from '@/types/game';
+import type { AppSettings } from '@/types/game';
 import { ArrowLeft, Moon, Volume2, Sparkles, Clock, RotateCcw, AlertTriangle, Trash2, Shield } from 'lucide-react';
 
 export default function SettingsScreen() {
@@ -109,17 +109,6 @@ export default function SettingsScreen() {
 
         {/* Game Defaults */}
         <SettingsSection icon={<Clock className="w-5 h-5 text-[#00F0FF]" />} title="Game Defaults">
-          <SelectRow
-            label="Default Difficulty"
-            value={settings.defaultDifficulty}
-            options={[
-              { label: 'Easy', value: 'EASY' },
-              { label: 'Medium', value: 'MEDIUM' },
-              { label: 'Hard', value: 'HARD' },
-              { label: 'Extreme', value: 'EXTREME' },
-            ]}
-            onChange={(v) => updateSetting('defaultDifficulty', v as Difficulty)}
-          />
           <NumberRow
             label="Default Discussion Timer"
             value={settings.defaultDiscussionTimer}
@@ -325,29 +314,6 @@ function ToggleRow({ label, value, onChange, description }: { label: string; val
           }`}
         />
       </button>
-    </div>
-  );
-}
-
-function SelectRow<T extends string>({ label, value, options, onChange }: { label: string; value: T; options: { label: string; value: T }[]; onChange: (v: T) => void }) {
-  return (
-    <div className="flex items-center justify-between py-2">
-      <p className="text-sm">{label}</p>
-      <div className="flex gap-1">
-        {options.map(opt => (
-          <button
-            key={opt.value}
-            onClick={() => onChange(opt.value)}
-            className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
-              value === opt.value
-                ? 'bg-[#00F0FF]/20 text-[#00F0FF] border border-[#00F0FF]/40'
-                : 'bg-[#2D1B69]/40 text-[#A89BC2] border border-transparent hover:bg-[#2D1B69]'
-            }`}
-          >
-            {opt.label}
-          </button>
-        ))}
-      </div>
     </div>
   );
 }

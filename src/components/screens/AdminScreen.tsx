@@ -9,6 +9,7 @@ import type { WordEntry } from '@/types/game';
 
 export default function AdminScreen() {
   const { setPhase } = useGame();
+  const [customPacks, setCustomPacks] = useState(getCustomPacks());
   const [authenticated, setAuthenticated] = useState(isAdminAuthenticated());
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
@@ -19,7 +20,6 @@ export default function AdminScreen() {
 
   const stats = getStatistics();
   const categories = getAllCategories();
-  const customPacks = getCustomPacks();
 
   const handleLogin = () => {
     if (verifyAdminPassword(password)) {
@@ -60,12 +60,14 @@ export default function AdminScreen() {
         if (file.name.endsWith('.json')) {
           const parsed = JSON.parse(content);
           if (Array.isArray(parsed)) {
-            words = parsed.map((item: any) => ({
+            words = parsed.map((item: Record<string, string | undefined>) => ({
               word: item.word || item.Word || '',
-              hintEasy: item.hintEasy || item.Hint_Easy || item.hint_easy || '',
-              hintMedium: item.hintMedium || item.Hint_Medium || item.hint_medium || '',
-              hintHard: item.hintHard || item.Hint_Hard || item.hint_hard || '',
-              hintExtreme: item.hintExtreme || item.Hint_Extreme || item.hint_extreme || '',
+              hint: item.hint || item.Hint
+                || item.hintHard || item.Hint_Hard || item.hint_hard
+                || item.hintMedium || item.Hint_Medium || item.hint_medium
+                || item.hintEasy || item.Hint_Easy || item.hint_easy
+                || item.hintExtreme || item.Hint_Extreme || item.hint_extreme
+                || '',
             }));
           }
         } else {
@@ -73,29 +75,26 @@ export default function AdminScreen() {
           const lines = content.split('\n').filter(l => l.trim());
           const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
           const wordIdx = headers.findIndex(h => h === 'word');
-          const easyIdx = headers.findIndex(h => h.includes('easy') || h.includes('hint_easy'));
-          const medIdx = headers.findIndex(h => h.includes('medium') || h.includes('hint_medium'));
-          const hardIdx = headers.findIndex(h => h.includes('hard') || h.includes('hint_hard'));
-          const extremeIdx = headers.findIndex(h => h.includes('extreme') || h.includes('hint_extreme'));
+          const hintIdx = headers.findIndex(h => h === 'hint');
+          const legacyHintIdx = headers.findIndex(h =>
+            h.includes('hard') || h.includes('medium') || h.includes('easy') || h.includes('extreme')
+          );
 
           for (let i = 1; i < lines.length; i++) {
             const cols = lines[i].split(',').map(c => c.trim());
             if (cols[wordIdx || 0]) {
               words.push({
                 word: cols[wordIdx || 0],
-                hintEasy: cols[easyIdx >= 0 ? easyIdx : 1] || '',
-                hintMedium: cols[medIdx >= 0 ? medIdx : 2] || '',
-                hintHard: cols[hardIdx >= 0 ? hardIdx : 3] || '',
-                hintExtreme: cols[extremeIdx >= 0 ? extremeIdx : 4] || '',
+                hint: cols[hintIdx >= 0 ? hintIdx : legacyHintIdx >= 0 ? legacyHintIdx : 1] || '',
               });
             }
           }
         }
 
         // Validate
-        const validWords = words.filter(w => w.word && w.hintEasy && w.hintMedium && w.hintHard && w.hintExtreme);
+        const validWords = words.filter(w => w.word && w.hint);
         if (validWords.length === 0) {
-          setUploadError('No valid word entries found. Ensure your file has Word, Hint_Easy, Hint_Medium, Hint_Hard, Hint_Extreme columns.');
+          setUploadError('No valid word entries found. Ensure your file has Word and Hint columns.');
           return;
         }
 
@@ -116,9 +115,10 @@ export default function AdminScreen() {
         };
 
         saveCustomPack(newPack);
+        setCustomPacks(getCustomPacks());
         setUploadSuccess(`Successfully imported "${categoryName}" with ${validWords.length} words!`);
         playButtonClick();
-      } catch (err) {
+      } catch {
         setUploadError('Failed to parse file. Please check the format.');
       }
     };
@@ -134,6 +134,7 @@ export default function AdminScreen() {
   const handleDeletePack = (id: string) => {
     playButtonClick();
     deleteCustomPack(id);
+    setCustomPacks(getCustomPacks());
   };
 
   // Login screen
@@ -261,8 +262,16 @@ export default function AdminScreen() {
                 key={cat.name}
                 className="bg-[#2D1B69]/30 rounded-xl border border-[#00F0FF]/5 overflow-hidden"
               >
-                <button
+                <div
+                  role="button"
+                  tabIndex={0}
                   onClick={() => setPreviewCategory(previewCategory === cat.name ? null : cat.name)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setPreviewCategory(previewCategory === cat.name ? null : cat.name);
+                    }
+                  }}
                   className="w-full p-4 flex items-center justify-between"
                 >
                   <div className="flex items-center gap-3">
@@ -277,7 +286,8 @@ export default function AdminScreen() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleDeletePack(cat.name);
+                          const pack = customPacks.find(item => item.category === cat.name);
+                          if (pack) handleDeletePack(pack.id);
                         }}
                         className="p-1.5 rounded-lg bg-[#FF0055]/10 text-[#FF0055] hover:bg-[#FF0055]/20"
                       >
@@ -286,7 +296,7 @@ export default function AdminScreen() {
                     )}
                     <Eye className="w-4 h-4 text-[#A89BC2]" />
                   </div>
-                </button>
+                </div>
 
                 <AnimatePresence>
                   {previewCategory === cat.name && (
@@ -301,16 +311,14 @@ export default function AdminScreen() {
                           <thead>
                             <tr className="text-[#A89BC2]">
                               <th className="text-left py-1">Word</th>
-                              <th className="text-left py-1">Easy</th>
-                              <th className="text-left py-1">Hard</th>
+                              <th className="text-left py-1">Hint</th>
                             </tr>
                           </thead>
                           <tbody>
                             {cat.words.map((w, i) => (
                               <tr key={i} className="border-t border-[#00F0FF]/5">
                                 <td className="py-1 text-white">{w.word}</td>
-                                <td className="py-1 text-[#A89BC2]">{w.hintEasy}</td>
-                                <td className="py-1 text-[#A89BC2]">{w.hintHard}</td>
+                                <td className="py-1 text-[#A89BC2]">{w.hint}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -337,7 +345,7 @@ export default function AdminScreen() {
                 Upload Word Pack
               </h3>
               <p className="text-xs text-[#A89BC2] mb-3">
-                Upload a CSV or JSON file with columns: Word, Hint_Easy, Hint_Medium, Hint_Hard, Hint_Extreme
+                Upload a CSV or JSON file with columns: Word, Hint
               </p>
 
               <label className="block w-full py-3 px-4 rounded-xl border-2 border-dashed border-[#00F0FF]/20
@@ -370,9 +378,9 @@ export default function AdminScreen() {
             <div className="bg-[#2D1B69]/30 rounded-xl p-4 border border-[#00F0FF]/5">
               <h3 className="font-medium text-sm mb-2">File Format Example (CSV)</h3>
               <pre className="text-xs text-[#A89BC2] bg-[#1A0B2E] rounded-lg p-3 overflow-x-auto">
-{`Word,Hint_Easy,Hint_Medium,Hint_Hard,Hint_Extreme
-Elephant,Large animal with a trunk,Found in herds,Massive herbivore,Tusks
-Tiger,Large cat with stripes,Apex predator,Striped feline,Claws`}
+{`Word,Hint
+Elephant,Large animal with a trunk
+Tiger,Large cat with stripes`}
               </pre>
             </div>
 
@@ -382,10 +390,7 @@ Tiger,Large cat with stripes,Apex predator,Striped feline,Claws`}
 {`[
   {
     "word": "Elephant",
-    "hintEasy": "Large animal with a trunk",
-    "hintMedium": "Found in herds",
-    "hintHard": "Massive herbivore",
-    "hintExtreme": "Tusks"
+    "hint": "Large animal with a trunk"
   }
 ]`}
               </pre>

@@ -70,7 +70,6 @@ export default function GameOverScreen() {
     updateSettings({
       playerNames: state.settings.playerNames,
       category: state.settings.category,
-      difficulty: state.settings.difficulty,
       imposterCount: state.settings.imposterCount,
       discussionTimer: state.settings.discussionTimer,
       votingTimer: state.settings.votingTimer,
@@ -167,10 +166,6 @@ export default function GameOverScreen() {
             <div className="flex justify-between items-center">
               <span className="text-sm text-[#A89BC2]">Category</span>
               <span className="text-white">{state.settings.category}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-[#A89BC2]">Difficulty</span>
-              <span className="text-white">{state.settings.difficulty}</span>
             </div>
             {eliminated && (
               <div className="flex justify-between items-center">

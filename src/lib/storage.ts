@@ -56,7 +56,6 @@ export function getSettings(): AppSettings {
     soundEffects: true,
     defaultDiscussionTimer: 180,
     defaultVotingTimer: 60,
-    defaultDifficulty: 'MEDIUM',
     defaultImposterCount: 1,
     recentWordProtectionCount: 10,
     privacyMode: false,
@@ -106,10 +105,63 @@ export interface StoredCustomPack {
   createdAt: string;
 }
 
+interface LegacyWordEntry {
+  word?: string;
+  hint?: string;
+  hintEasy?: string;
+  hintMedium?: string;
+  hintHard?: string;
+  hintExtreme?: string;
+}
+
+type LegacyStoredCustomPack = Partial<Omit<StoredCustomPack, 'words'>> & {
+  words?: LegacyWordEntry[];
+};
+
+function normalizeWord(word: LegacyWordEntry): WordEntry {
+  return {
+    word: word.word || '',
+    hint: word.hint
+      || word.hintHard
+      || word.hintMedium
+      || word.hintEasy
+      || word.hintExtreme
+      || '',
+  };
+}
+
+function normalizeCustomPack(pack: LegacyStoredCustomPack, index: number): StoredCustomPack {
+  const name = pack.name || pack.category || `Custom Pack ${index + 1}`;
+  const stableName = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+  return {
+    id: pack.id || `legacy-${index}-${stableName || 'pack'}`,
+    name,
+    category: pack.category || name,
+    words: Array.isArray(pack.words) ? pack.words.map(normalizeWord) : [],
+    createdAt: pack.createdAt || new Date(0).toISOString(),
+  };
+}
+
 export function getCustomPacks(): StoredCustomPack[] {
   try {
     const data = localStorage.getItem(KEYS.CUSTOM_PACKS);
-    if (data) return JSON.parse(data);
+    if (data) {
+      const parsed: unknown = JSON.parse(data);
+      if (!Array.isArray(parsed)) return [];
+
+      const packs = parsed
+        .filter((pack): pack is LegacyStoredCustomPack => Boolean(pack) && typeof pack === 'object')
+        .map(normalizeCustomPack);
+
+      // Persist the migration so legacy difficulty-specific hints are removed.
+      const normalizedData = JSON.stringify(packs);
+      if (normalizedData !== data) {
+        localStorage.setItem(KEYS.CUSTOM_PACKS, normalizedData);
+      }
+
+      return packs;
+    }
   } catch { /* ignore */ }
   return [];
 }
@@ -117,10 +169,11 @@ export function getCustomPacks(): StoredCustomPack[] {
 export function saveCustomPack(pack: StoredCustomPack): void {
   const packs = getCustomPacks();
   const existing = packs.findIndex(p => p.id === pack.id);
+  const normalizedPack = normalizeCustomPack(pack, existing >= 0 ? existing : packs.length);
   if (existing >= 0) {
-    packs[existing] = pack;
+    packs[existing] = normalizedPack;
   } else {
-    packs.push(pack);
+    packs.push(normalizedPack);
   }
   localStorage.setItem(KEYS.CUSTOM_PACKS, JSON.stringify(packs));
 }

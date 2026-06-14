@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useReducer, useCallback, useEffect } from 'react';
 import type { GameState, GamePhase, GameSettings, Player, Vote, Winner, Role, GameResult } from '@/types/game';
 import { CHAOS_RULES, GAME_MODE_CONFIG } from '@/types/game';
-import { getRandomWord, getHint, getAllCategories } from '@/data/wordlist';
+import { getRandomWord, getHint, getSecureRandomItem, getSecureRandomItems, getWordsForCategories } from '@/data/wordlist';
 import { getRecentWords, addRecentWord, getStatistics, saveStatistics, generateId } from '@/lib/storage';
 
 // ============================================
@@ -11,7 +11,6 @@ import { getRecentWords, addRecentWord, getStatistics, saveStatistics, generateI
 const defaultSettings: GameSettings = {
   playerNames: [],
   category: 'Animals',
-  difficulty: 'MEDIUM',
   imposterCount: 1,
   discussionTimer: 180,
   votingTimer: 60,
@@ -59,6 +58,7 @@ type GameAction =
   | { type: 'CAST_VOTE'; payload: Vote }
   | { type: 'UPDATE_VOTING_TIMER'; payload: number }
   | { type: 'CALCULATE_VOTES' }
+  | { type: 'SUBMIT_GROUP_VOTE'; payload: string }
   | { type: 'SUBMIT_IMPOSTER_GUESS'; payload: string }
   | { type: 'END_GAME'; payload: Winner }
   | { type: 'RESET_TO_MENU' }
@@ -78,25 +78,24 @@ function gameReducer(state: GameState, action: GameAction): GameState {
 
     case 'START_GAME': {
       const { settings } = state;
-      const cats = getAllCategories();
-      const category = cats.find(c => c.name === settings.category);
-      if (!category || category.words.length === 0) {
-        return state;
-      }
+      const selectedCategories = settings.categories?.length
+        ? settings.categories
+        : [settings.category];
+      const wordPool = getWordsForCategories(selectedCategories);
+      if (wordPool.length === 0) return state;
 
       const recentWords = getRecentWords();
-      const wordEntry = getRandomWord(settings.category, settings.difficulty, recentWords);
+      const wordEntry = getRandomWord(selectedCategories, recentWords);
       if (!wordEntry) return state;
 
       const secretWord = wordEntry.word;
-      const hint = getHint(wordEntry, settings.difficulty);
+      const hint = getHint(wordEntry);
 
       // Assign roles
       const playerCount = settings.playerNames.length;
       const roles: Role[] = new Array(playerCount).fill('CITIZEN');
 
       // Assign imposters
-      const imposterIndices: number[] = [];
       let imposterCount = settings.imposterCount;
       const modeConfig = GAME_MODE_CONFIG[settings.gameMode];
       if (modeConfig.blind) {
@@ -106,20 +105,19 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         imposterCount = 1; // Spy mode has 1 imposter + 1 spy
       }
 
-      while (imposterIndices.length < imposterCount) {
-        const idx = Math.floor(Math.random() * playerCount);
-        if (!imposterIndices.includes(idx)) {
-          imposterIndices.push(idx);
-          roles[idx] = 'IMPOSTER';
-        }
-      }
+      const playerIndices = roles.map((_, index) => index);
+      const imposterIndices = getSecureRandomItems(playerIndices, imposterCount);
+      imposterIndices.forEach(index => {
+        roles[index] = 'IMPOSTER';
+      });
 
       // Assign spy if spy mode
       let spyIndex = -1;
       if (modeConfig.hasSpy) {
         const availableForSpy = roles.map((_, i) => i).filter(i => roles[i] === 'CITIZEN');
-        if (availableForSpy.length > 0) {
-          spyIndex = availableForSpy[Math.floor(Math.random() * availableForSpy.length)];
+        const selectedSpy = getSecureRandomItem(availableForSpy);
+        if (selectedSpy !== null) {
+          spyIndex = selectedSpy;
           roles[spyIndex] = 'SPY';
         }
       }
@@ -127,10 +125,8 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       // Get a fake word for spy (different from secret)
       let fakeWord = '';
       if (spyIndex >= 0) {
-        const otherWords = category.words.filter(w => w.word !== secretWord);
-        if (otherWords.length > 0) {
-          fakeWord = otherWords[Math.floor(Math.random() * otherWords.length)].word;
-        }
+        const otherWords = wordPool.filter(w => w.word !== secretWord);
+        fakeWord = getSecureRandomItem(otherWords)?.word || '';
       }
 
       const players: Player[] = settings.playerNames.map((name, i) => ({
@@ -141,9 +137,6 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         hint: roles[i] === 'IMPOSTER' && !modeConfig.blind ? hint : roles[i] === 'IMPOSTER' && modeConfig.blind ? 'No hint. You are completely blind!' : undefined,
         isEliminated: false,
       }));
-
-      // Shuffle reveal order
-      const shuffledIndices = players.map((_, i) => i).sort(() => Math.random() - 0.5);
 
       // Pick chaos rule if chaos mode
       let chaosRule: string | undefined;
@@ -159,9 +152,8 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         phase: 'ROLE_REVEAL',
         players,
         secretWord,
-        currentPlayerIndex: shuffledIndices[0],
+        currentPlayerIndex: 0,
         revealIndex: 0,
-        revealOrder: shuffledIndices,
         votes: [],
         currentVoterIndex: 0,
         voteResults: {},
@@ -177,14 +169,13 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     }
 
     case 'NEXT_REVEAL': {
-      const revealOrder = state.revealOrder || state.players.map((_, idx) => idx);
       const nextIndex = state.revealIndex + 1;
       if (nextIndex >= state.players.length) {
         return { ...state, phase: 'DISCUSSION', revealIndex: nextIndex };
       }
       return {
         ...state,
-        currentPlayerIndex: revealOrder[nextIndex],
+        currentPlayerIndex: nextIndex,
         revealIndex: nextIndex,
       };
     }
@@ -266,6 +257,21 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       };
     }
 
+    case 'SUBMIT_GROUP_VOTE': {
+      const results: Record<string, number> = {};
+      state.players.forEach(player => {
+        results[player.name] = player.name === action.payload ? 1 : 0;
+      });
+
+      return {
+        ...state,
+        phase: 'VOTE_RESULTS',
+        votes: [{ voter: 'Group', target: action.payload }],
+        voteResults: results,
+        eliminatedPlayer: state.players.find(player => player.name === action.payload) || null,
+      };
+    }
+
     case 'SUBMIT_IMPOSTER_GUESS': {
       const guess = action.payload.toLowerCase().trim();
       const correct = guess === state.secretWord.toLowerCase().trim();
@@ -309,6 +315,7 @@ interface GameContextType {
   startVoting: () => void;
   castVote: (vote: Vote) => void;
   calculateVotes: () => void;
+  submitGroupVote: (target: string) => void;
   submitImposterGuess: (guess: string) => void;
   endGame: (winner: Winner) => void;
   resetToMenu: () => void;
@@ -345,6 +352,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const calculateVotes = useCallback(() => {
     dispatch({ type: 'CALCULATE_VOTES' });
+  }, []);
+
+  const submitGroupVote = useCallback((target: string) => {
+    dispatch({ type: 'SUBMIT_GROUP_VOTE', payload: target });
   }, []);
 
   const submitImposterGuess = useCallback((guess: string) => {
@@ -384,7 +395,6 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         date: new Date().toISOString(),
         players: state.players.map(p => p.name),
         category: state.settings.category,
-        difficulty: state.settings.difficulty,
         gameMode: state.settings.gameMode,
         secretWord: state.secretWord,
         winner: state.winner,
@@ -450,7 +460,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     <GameContext.Provider value={{
       state, dispatch, startGame, nextReveal, startDiscussion,
       startVoting, castVote, calculateVotes, submitImposterGuess,
-      endGame, resetToMenu, setPhase, updateSettings, pauseGame, resumeGame,
+      submitGroupVote, endGame, resetToMenu, setPhase, updateSettings, pauseGame, resumeGame,
     }}>
       {children}
     </GameContext.Provider>

@@ -233,7 +233,7 @@ export default function DiscussionScreen() {
                      hover:bg-[#FF0055]/30 transform active:scale-95 transition-all"
         >
           <SkipForward className="w-5 h-5" />
-          End Early
+          Vote Now
         </button>
       </motion.div>
 

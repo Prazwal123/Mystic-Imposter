@@ -4,11 +4,11 @@ import { useGame } from '@/context/GameContext';
 import { getAllCategories } from '@/data/wordlist';
 import { getSettings } from '@/lib/storage';
 import { playButtonClick, playError } from '@/lib/sounds';
-import type { Difficulty, GameMode } from '@/types/game';
-import { GAME_MODE_CONFIG, DIFFICULTY_LABELS, TIMER_OPTIONS } from '@/types/game';
+import type { GameMode } from '@/types/game';
+import { GAME_MODE_CONFIG, TIMER_OPTIONS } from '@/types/game';
 import {
   ArrowLeft, Plus, Minus, Users, Clock, Brain, Skull,
-  Sparkles, ChevronDown, AlertCircle, Zap, Play
+  Sparkles, AlertCircle, Play, Check
 } from 'lucide-react';
 
 export default function SetupScreen() {
@@ -17,8 +17,7 @@ export default function SetupScreen() {
 
   const [playerCount, setPlayerCount] = useState(4);
   const [playerNames, setPlayerNames] = useState<string[]>(['', '', '', '']);
-  const [category, setCategory] = useState('Animals');
-  const [difficulty, setDifficulty] = useState<Difficulty>(appSettings.defaultDifficulty);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(['Animals']);
   const [imposterCount, setImposterCount] = useState(appSettings.defaultImposterCount);
   const [discussionTimer, setDiscussionTimer] = useState(appSettings.defaultDiscussionTimer);
   const [votingTimer] = useState(appSettings.defaultVotingTimer);
@@ -30,7 +29,7 @@ export default function SetupScreen() {
 
   const handlePlayerCountChange = (delta: number) => {
     playButtonClick();
-    const newCount = Math.max(3, Math.min(20, playerCount + delta));
+    const newCount = Math.max(3, playerCount + delta);
     setPlayerCount(newCount);
     setPlayerNames(prev => {
       const newNames = [...prev];
@@ -51,6 +50,16 @@ export default function SetupScreen() {
     setErrors([]);
   };
 
+  const handleCategoryToggle = (categoryName: string) => {
+    playButtonClick();
+    setSelectedCategories(current =>
+      current.includes(categoryName)
+        ? current.filter(name => name !== categoryName)
+        : [...current, categoryName]
+    );
+    setErrors([]);
+  };
+
   const handleStartGame = () => {
     const newErrors: string[] = [];
 
@@ -62,6 +71,9 @@ export default function SetupScreen() {
     const uniqueNames = new Set(filledNames.map(n => n.trim().toLowerCase()));
     if (uniqueNames.size !== filledNames.length) {
       newErrors.push('All player names must be unique');
+    }
+    if (selectedCategories.length === 0) {
+      newErrors.push('Select at least one category');
     }
 
     // Validate imposter count
@@ -79,8 +91,8 @@ export default function SetupScreen() {
     playButtonClick();
     updateSettings({
       playerNames: filledNames,
-      category,
-      difficulty,
+      category: selectedCategories.join(', '),
+      categories: selectedCategories,
       imposterCount,
       discussionTimer,
       votingTimer,
@@ -175,43 +187,35 @@ export default function SetupScreen() {
           </div>
         </Section>
 
-        {/* Category */}
-        <Section icon={<Brain className="w-5 h-5 text-[#00F0FF]" />} title="Category">
-          <div className="relative">
-            <select
-              value={category}
-              onChange={(e) => { playButtonClick(); setCategory(e.target.value); }}
-              className="w-full px-4 py-3 rounded-lg bg-[#2D1B69]/60 border border-[#00F0FF]/10
-                         focus:border-[#00F0FF]/50 focus:outline-none appearance-none
-                         text-white cursor-pointer transition-all"
-            >
-              {categories.map(cat => (
-                <option key={cat.name} value={cat.name}>
-                  {cat.name} ({cat.words.length} words)
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#A89BC2] pointer-events-none" />
-          </div>
-        </Section>
-
-        {/* Difficulty */}
-        <Section icon={<Zap className="w-5 h-5 text-[#00F0FF]" />} title="Difficulty">
-          <div className="grid grid-cols-4 gap-2">
-            {(['EASY', 'MEDIUM', 'HARD', 'EXTREME'] as Difficulty[]).map((d) => (
-              <button
-                key={d}
-                onClick={() => { playButtonClick(); setDifficulty(d); }}
-                className={`py-2.5 rounded-lg font-medium text-sm transition-all
-                           ${difficulty === d
-                    ? 'bg-gradient-to-r from-[#00F0FF] to-[#00B8FF] text-[#1A0B2E] shadow-[0_0_10px_rgba(0,240,255,0.3)]'
-                    : 'bg-[#2D1B69]/60 border border-[#00F0FF]/10 text-[#A89BC2] hover:bg-[#2D1B69]'
+        {/* Categories */}
+        <Section icon={<Brain className="w-5 h-5 text-[#00F0FF]" />} title="Categories">
+          <div className="grid grid-cols-2 gap-2">
+            {categories.map(category => {
+              const isSelected = selectedCategories.includes(category.name);
+              return (
+                <button
+                  key={category.name}
+                  onClick={() => handleCategoryToggle(category.name)}
+                  className={`p-3 rounded-lg border text-left transition-all ${
+                    isSelected
+                      ? 'bg-[#00F0FF]/15 border-[#00F0FF]/60 text-white'
+                      : 'bg-[#2D1B69]/40 border-[#00F0FF]/10 text-[#A89BC2] hover:border-[#00F0FF]/30'
                   }`}
-              >
-                {DIFFICULTY_LABELS[d]}
-              </button>
-            ))}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-medium">{category.name}</span>
+                    {isSelected && <Check className="w-4 h-4 text-[#00F0FF]" />}
+                  </div>
+                  <span className="text-xs text-[#A89BC2]/60">
+                    {category.words.length} words
+                  </span>
+                </button>
+              );
+            })}
           </div>
+          <p className="text-xs text-[#A89BC2]/60 mt-3">
+            {selectedCategories.length} selected
+          </p>
         </Section>
 
         {/* Game Mode */}

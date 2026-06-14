@@ -14,7 +14,7 @@ export default function WordPacksScreen() {
   const [editingPack, setEditingPack] = useState<string | null>(null);
   const [newPackName, setNewPackName] = useState('');
   const [newWords, setNewWords] = useState<WordEntry[]>([
-    { word: '', hintEasy: '', hintMedium: '', hintHard: '', hintExtreme: '' },
+    { word: '', hint: '' },
   ]);
   const [error, setError] = useState('');
 
@@ -27,7 +27,7 @@ export default function WordPacksScreen() {
 
   const handleAddWord = () => {
     playButtonClick();
-    setNewWords(prev => [...prev, { word: '', hintEasy: '', hintMedium: '', hintHard: '', hintExtreme: '' }]);
+    setNewWords(prev => [...prev, { word: '', hint: '' }]);
   };
 
   const handleRemoveWord = (index: number) => {
@@ -46,10 +46,10 @@ export default function WordPacksScreen() {
 
   const handleSavePack = () => {
     // Validate
-    const validWords = newWords.filter(w => w.word.trim() && w.hintEasy.trim() && w.hintMedium.trim() && w.hintHard.trim() && w.hintExtreme.trim());
+    const validWords = newWords.filter(w => w.word.trim() && w.hint?.trim());
     if (validWords.length === 0) {
       playError();
-      setError('Add at least one complete word with all hints');
+      setError('Add at least one complete word with a hint');
       return;
     }
 
@@ -69,7 +69,7 @@ export default function WordPacksScreen() {
     setShowCreate(false);
     setEditingPack(null);
     setNewPackName('');
-    setNewWords([{ word: '', hintEasy: '', hintMedium: '', hintHard: '', hintExtreme: '' }]);
+    setNewWords([{ word: '', hint: '' }]);
     playButtonClick();
   };
 
@@ -78,7 +78,7 @@ export default function WordPacksScreen() {
     const pack = packs.find(p => p.id === packId);
     if (pack) {
       setNewPackName(pack.name);
-      setNewWords(pack.words.length > 0 ? [...pack.words] : [{ word: '', hintEasy: '', hintMedium: '', hintHard: '', hintExtreme: '' }]);
+      setNewWords(pack.words.length > 0 ? [...pack.words] : [{ word: '', hint: '' }]);
       setEditingPack(packId);
       setShowCreate(true);
     }
@@ -95,7 +95,7 @@ export default function WordPacksScreen() {
     setShowCreate(true);
     setEditingPack(null);
     setNewPackName('');
-    setNewWords([{ word: '', hintEasy: '', hintMedium: '', hintHard: '', hintExtreme: '' }]);
+    setNewWords([{ word: '', hint: '' }]);
     setError('');
   };
 
@@ -204,33 +204,9 @@ export default function WordPacksScreen() {
                       />
                       <input
                         type="text"
-                        value={word.hintEasy}
-                        onChange={(e) => handleWordChange(i, 'hintEasy', e.target.value)}
-                        placeholder="Easy Hint"
-                        className="w-full px-2.5 py-1.5 rounded bg-[#1A0B2E]/60 border border-[#00F0FF]/5
-                                   focus:border-[#00F0FF]/30 focus:outline-none text-sm"
-                      />
-                      <input
-                        type="text"
-                        value={word.hintMedium}
-                        onChange={(e) => handleWordChange(i, 'hintMedium', e.target.value)}
-                        placeholder="Medium Hint"
-                        className="w-full px-2.5 py-1.5 rounded bg-[#1A0B2E]/60 border border-[#00F0FF]/5
-                                   focus:border-[#00F0FF]/30 focus:outline-none text-sm"
-                      />
-                      <input
-                        type="text"
-                        value={word.hintHard}
-                        onChange={(e) => handleWordChange(i, 'hintHard', e.target.value)}
-                        placeholder="Hard Hint"
-                        className="w-full px-2.5 py-1.5 rounded bg-[#1A0B2E]/60 border border-[#00F0FF]/5
-                                   focus:border-[#00F0FF]/30 focus:outline-none text-sm"
-                      />
-                      <input
-                        type="text"
-                        value={word.hintExtreme}
-                        onChange={(e) => handleWordChange(i, 'hintExtreme', e.target.value)}
-                        placeholder="Extreme Hint"
+                        value={word.hint || ''}
+                        onChange={(e) => handleWordChange(i, 'hint', e.target.value)}
+                        placeholder="Hint"
                         className="w-full px-2.5 py-1.5 rounded bg-[#1A0B2E]/60 border border-[#00F0FF]/5
                                    focus:border-[#00F0FF]/30 focus:outline-none text-sm"
                       />
