@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '@/context/GameContext';
 import { getAllCategories } from '@/data/wordlist';
-import { getSettings } from '@/lib/storage';
+import { getSessionGameSettings, getSettings, saveSessionGameSettings } from '@/lib/storage';
 import { playButtonClick, playError } from '@/lib/sounds';
 import type { GameMode } from '@/types/game';
 import { GAME_MODE_CONFIG, TIMER_OPTIONS } from '@/types/game';
@@ -12,16 +12,29 @@ import {
 } from 'lucide-react';
 
 export default function SetupScreen() {
-  const { setPhase, updateSettings, startGame } = useGame();
+  const { state, setPhase, updateSettings, startGame } = useGame();
   const appSettings = getSettings();
+  const savedGameSettings = getSessionGameSettings();
+  const initialPlayerNames = savedGameSettings?.playerNames?.length
+    ? savedGameSettings.playerNames
+    : state.settings.playerNames.length
+      ? state.settings.playerNames
+      : ['', '', '', ''];
+  const initialCategories = savedGameSettings?.categories?.length
+    ? savedGameSettings.categories
+    : state.settings.categories?.length
+      ? state.settings.categories
+      : state.settings.category
+        ? state.settings.category.split(',').map(category => category.trim()).filter(Boolean)
+        : ['Animals'];
 
-  const [playerCount, setPlayerCount] = useState(4);
-  const [playerNames, setPlayerNames] = useState<string[]>(['', '', '', '']);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(['Animals']);
-  const [imposterCount, setImposterCount] = useState(appSettings.defaultImposterCount);
-  const [discussionTimer, setDiscussionTimer] = useState(appSettings.defaultDiscussionTimer);
-  const [votingTimer] = useState(appSettings.defaultVotingTimer);
-  const [gameMode, setGameMode] = useState<GameMode>('CLASSIC');
+  const [playerCount, setPlayerCount] = useState(initialPlayerNames.length);
+  const [playerNames, setPlayerNames] = useState<string[]>(initialPlayerNames);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(initialCategories);
+  const [imposterCount, setImposterCount] = useState(savedGameSettings?.imposterCount ?? state.settings.imposterCount ?? appSettings.defaultImposterCount);
+  const [discussionTimer, setDiscussionTimer] = useState(savedGameSettings?.discussionTimer ?? state.settings.discussionTimer ?? appSettings.defaultDiscussionTimer);
+  const [votingTimer] = useState(savedGameSettings?.votingTimer ?? state.settings.votingTimer ?? appSettings.defaultVotingTimer);
+  const [gameMode, setGameMode] = useState<GameMode>(savedGameSettings?.gameMode ?? state.settings.gameMode ?? 'CLASSIC');
   const [errors, setErrors] = useState<string[]>([]);
   const [showModeInfo, setShowModeInfo] = useState<string | null>(null);
 
@@ -64,7 +77,7 @@ export default function SetupScreen() {
     const newErrors: string[] = [];
 
     // Validate player names
-    const filledNames = playerNames.filter(n => n.trim() !== '');
+    const filledNames = playerNames.map(n => n.trim()).filter(Boolean);
     if (filledNames.length < 3) {
       newErrors.push('At least 3 players are required');
     }
@@ -89,7 +102,7 @@ export default function SetupScreen() {
     }
 
     playButtonClick();
-    updateSettings({
+    const nextSettings = {
       playerNames: filledNames,
       category: selectedCategories.join(', '),
       categories: selectedCategories,
@@ -97,7 +110,9 @@ export default function SetupScreen() {
       discussionTimer,
       votingTimer,
       gameMode,
-    });
+    };
+    saveSessionGameSettings(nextSettings);
+    updateSettings(nextSettings);
     startGame();
   };
 

@@ -1,4 +1,4 @@
-import type { GameStatistics, AppSettings, GameResult, WordEntry } from '@/types/game';
+import type { GameStatistics, AppSettings, GameResult, WordEntry, GameSettings } from '@/types/game';
 
 // ============================================
 // LocalStorage Keys
@@ -7,6 +7,7 @@ import type { GameStatistics, AppSettings, GameResult, WordEntry } from '@/types
 const KEYS = {
   STATISTICS: 'mystic_statistics',
   SETTINGS: 'mystic_settings',
+  SESSION_GAME_SETTINGS: 'mystic_session_game_settings',
   RECENT_WORDS: 'mystic_recent_words',
   CUSTOM_PACKS: 'mystic_custom_packs',
   ADMIN_AUTH: 'mystic_admin_auth',
@@ -64,6 +65,20 @@ export function getSettings(): AppSettings {
 
 export function saveSettings(settings: AppSettings): void {
   localStorage.setItem(KEYS.SETTINGS, JSON.stringify(settings));
+}
+
+export function getSessionGameSettings(): Partial<GameSettings> | null {
+  try {
+    const data = sessionStorage.getItem(KEYS.SESSION_GAME_SETTINGS);
+    if (data) return JSON.parse(data);
+  } catch { /* ignore */ }
+  return null;
+}
+
+export function saveSessionGameSettings(settings: Partial<GameSettings>): void {
+  try {
+    sessionStorage.setItem(KEYS.SESSION_GAME_SETTINGS, JSON.stringify(settings));
+  } catch { /* ignore */ }
 }
 
 // ============================================
