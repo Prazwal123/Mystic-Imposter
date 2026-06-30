@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useCallback, useEffect, useRef } from 'react';
 import type { GameState, GamePhase, GameSettings, Player, Vote, Winner, Role, GameResult } from '@/types/game';
 import { CHAOS_RULES, GAME_MODE_CONFIG } from '@/types/game';
 import { getRandomWord, getHint, getSecureRandomItem, getSecureRandomItems, getWordsForCategories } from '@/data/wordlist';
@@ -44,7 +44,7 @@ const initialState: GameState = {
 // Action Types
 // ============================================
 
-type GameAction =
+export type GameAction =
   | { type: 'SET_PHASE'; payload: GamePhase }
   | { type: 'UPDATE_SETTINGS'; payload: Partial<GameSettings> }
   | { type: 'START_GAME' }
@@ -62,7 +62,8 @@ type GameAction =
   | { type: 'SUBMIT_IMPOSTER_GUESS'; payload: string }
   | { type: 'END_GAME'; payload: Winner }
   | { type: 'RESET_TO_MENU' }
-  | { type: 'LOAD_SAVED_STATE'; payload: Partial<GameState> };
+  | { type: 'LOAD_SAVED_STATE'; payload: Partial<GameState> }
+  | { type: 'CONTINUE_FROM_VOTE_RESULTS' };
 
 // ============================================
 // Reducer
@@ -80,7 +81,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       const { settings } = state;
       const selectedCategories = settings.categories?.length
         ? settings.categories
-        : [settings.category];
+        : settings.category.split(',').map(category => category.trim()).filter(Boolean);
       const wordPool = getWordsForCategories(selectedCategories);
       if (wordPool.length === 0) return state;
 
@@ -141,7 +142,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       // Pick chaos rule if chaos mode
       let chaosRule: string | undefined;
       if (settings.gameMode === 'CHAOS_MODE') {
-        chaosRule = CHAOS_RULES[Math.floor(Math.random() * CHAOS_RULES.length)];
+        chaosRule = getSecureRandomItem(CHAOS_RULES) || undefined;
       }
 
       // Add to recent words
@@ -297,6 +298,51 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     case 'LOAD_SAVED_STATE':
       return { ...state, ...action.payload };
 
+    case 'CONTINUE_FROM_VOTE_RESULTS': {
+      let updatedPlayers = state.players;
+      if (state.eliminatedPlayer) {
+        updatedPlayers = state.players.map(p =>
+          p.id === state.eliminatedPlayer?.id ? { ...p, isEliminated: true } : p
+        );
+      }
+
+      // Check win conditions
+      const aliveImposters = updatedPlayers.filter(p => p.role === 'IMPOSTER' && !p.isEliminated);
+      const aliveNonImposters = updatedPlayers.filter(p => p.role !== 'IMPOSTER' && !p.isEliminated);
+
+      if (aliveImposters.length >= aliveNonImposters.length) {
+        // Imposters win!
+        return {
+          ...state,
+          players: updatedPlayers,
+          winner: 'IMPOSTER',
+          phase: 'GAME_OVER',
+        };
+      }
+
+      if (aliveImposters.length === 0) {
+        // All imposters eliminated! Citizens win but Imposter gets one last guess
+        return {
+          ...state,
+          players: updatedPlayers,
+          phase: 'IMPOSTER_GUESS',
+        };
+      }
+
+      // Game continues! Go to next round
+      return {
+        ...state,
+        players: updatedPlayers,
+        phase: 'DISCUSSION',
+        votes: [],
+        voteResults: {},
+        eliminatedPlayer: null,
+        discussionTimeLeft: state.settings.discussionTimer,
+        votingTimeLeft: state.settings.votingTimer,
+        currentVoterIndex: 0,
+      };
+    }
+
     default:
       return state;
   }
@@ -323,12 +369,14 @@ interface GameContextType {
   updateSettings: (settings: Partial<GameSettings>) => void;
   pauseGame: () => void;
   resumeGame: () => void;
+  continueFromVoteResults: () => void;
 }
 
 const GameContext = createContext<GameContextType | null>(null);
 
 export function GameProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(gameReducer, initialState);
+  const savedGameResultKey = useRef<string | null>(null);
 
   const startGame = useCallback(() => {
     dispatch({ type: 'START_GAME' });
@@ -386,9 +434,22 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'RESUME_GAME' });
   }, []);
 
+  const continueFromVoteResults = useCallback(() => {
+    dispatch({ type: 'CONTINUE_FROM_VOTE_RESULTS' });
+  }, []);
+
   // Save game result to statistics when game ends
   useEffect(() => {
-    if (state.phase === 'GAME_OVER' && state.winner !== 'NONE') {
+    if (state.phase !== 'GAME_OVER') {
+      savedGameResultKey.current = null;
+      return;
+    }
+
+    if (!state.isOnline && state.winner !== 'NONE') {
+      const resultKey = `${state.gameStartTime}:${state.winner}:${state.secretWord}`;
+      if (savedGameResultKey.current === resultKey) return;
+      savedGameResultKey.current = resultKey;
+
       const duration = Math.floor((Date.now() - state.gameStartTime) / 1000);
       const result: GameResult = {
         id: generateId(),
@@ -454,13 +515,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
       saveStatistics(stats);
     }
-  }, [state.phase, state.winner]);
+  }, [state]);
 
   return (
     <GameContext.Provider value={{
       state, dispatch, startGame, nextReveal, startDiscussion,
       startVoting, castVote, calculateVotes, submitImposterGuess,
       submitGroupVote, endGame, resetToMenu, setPhase, updateSettings, pauseGame, resumeGame,
+      continueFromVoteResults,
     }}>
       {children}
     </GameContext.Provider>

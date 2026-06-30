@@ -15,7 +15,9 @@ export type GamePhase =
   | 'GAME_HISTORY'
   | 'SETTINGS'
   | 'ADMIN'
-  | 'WORD_PACKS';
+  | 'WORD_PACKS'
+  | 'ONLINE_MENU'
+  | 'ONLINE_LOBBY';
 
 export type GameMode =
   | 'CLASSIC'
@@ -48,12 +50,15 @@ export interface Player {
   word?: string;
   hint?: string;
   isEliminated: boolean;
+  isDisconnected?: boolean;
+  hasVoted?: boolean;
 }
 
 export interface GameSettings {
   playerNames: string[];
   category: string;
   categories?: string[];
+  targetPlayerCount?: number;
   imposterCount: number;
   discussionTimer: number;
   votingTimer: number;
@@ -146,6 +151,11 @@ export interface GameState {
   votingTimeLeft: number;
   chaosRule?: string;
   isPaused: boolean;
+  isOnline?: boolean;
+  myPlayerId?: string;
+  roomCode?: string;
+  isHost?: boolean;
+  connectedPlayersCount?: number;
 }
 
 export const GAME_MODE_CONFIG: Record<GameMode, { name: string; description: string; maxImposters: number; hasSpy: boolean; blind: boolean; unlockRequirement: string }> = {

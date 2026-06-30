@@ -1,12 +1,14 @@
 import { useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useGame } from '@/context/GameContext';
+import { useOnline } from '@/context/OnlineContext';
 import { playButtonClick, playWinSound } from '@/lib/sounds';
 import { Home, RotateCcw, Trophy, Skull } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export default function GameOverScreen() {
   const { state, resetToMenu, setPhase, updateSettings } = useGame();
+  const { room, returnOnlineToLobby, leaveRoom } = useOnline();
 
   const citizensWin = state.winner === 'CITIZENS';
   const imposters = state.players.filter(p => p.role === 'IMPOSTER');
@@ -66,6 +68,10 @@ export default function GameOverScreen() {
 
   const handlePlayAgain = useCallback(() => {
     playButtonClick();
+    if (state.isOnline) {
+      returnOnlineToLobby();
+      return;
+    }
     // Keep same settings and restart
     updateSettings({
       playerNames: state.settings.playerNames,
@@ -78,12 +84,16 @@ export default function GameOverScreen() {
     // Need to go to setup first to reconfigure
     resetToMenu();
     setPhase('SETUP');
-  }, [state.settings, updateSettings, resetToMenu, setPhase]);
+  }, [returnOnlineToLobby, state.isOnline, state.settings, updateSettings, resetToMenu, setPhase]);
 
   const handleMainMenu = useCallback(() => {
     playButtonClick();
+    if (state.isOnline) {
+      leaveRoom();
+      return;
+    }
     resetToMenu();
-  }, [resetToMenu]);
+  }, [leaveRoom, resetToMenu, state.isOnline]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4">
@@ -226,16 +236,18 @@ export default function GameOverScreen() {
           transition={{ delay: 0.8 }}
           className="w-full space-y-3"
         >
-          <button
-            onClick={handlePlayAgain}
-            className="w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-3
-                       bg-gradient-to-r from-[#00F0FF] to-[#00B8FF] text-[#1A0B2E]
-                       shadow-[0_0_20px_rgba(0,240,255,0.4)]
-                       transform hover:scale-[1.02] active:scale-95 transition-all"
-          >
-            <RotateCcw className="w-5 h-5" />
-            Play Again
-          </button>
+          {(!state.isOnline || room?.you.isHost) && (
+            <button
+              onClick={handlePlayAgain}
+              className="w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-3
+                         bg-gradient-to-r from-[#00F0FF] to-[#00B8FF] text-[#1A0B2E]
+                         shadow-[0_0_20px_rgba(0,240,255,0.4)]
+                         transform hover:scale-[1.02] active:scale-95 transition-all"
+            >
+              <RotateCcw className="w-5 h-5" />
+              {state.isOnline ? 'Back to Lobby' : 'Play Again'}
+            </button>
+          )}
 
           <button
             onClick={handleMainMenu}

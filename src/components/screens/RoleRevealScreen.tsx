@@ -1,17 +1,20 @@
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '@/context/GameContext';
+import { useOnline } from '@/context/OnlineContext';
 import { playCardFlip, playButtonClick } from '@/lib/sounds';
-import { Eye, EyeOff, User, ArrowRight } from 'lucide-react';
+import { Eye, EyeOff, User, ArrowRight, CheckCircle2 } from 'lucide-react';
 
 export default function RoleRevealScreen() {
   const { state, nextReveal, startDiscussion } = useGame();
+  const { room, markRoleReady } = useOnline();
   const [revealed, setRevealed] = useState(false);
   const [hidden, setHidden] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(true);
 
   const currentPlayer = state.players[state.currentPlayerIndex];
   const isLastPlayer = state.revealIndex >= state.players.length - 1;
+  const onlinePlayer = room?.players.find(player => player.id === room.you.id);
 
   const handlePrivacyContinue = useCallback(() => {
     playButtonClick();
@@ -41,6 +44,107 @@ export default function RoleRevealScreen() {
       nextReveal();
     }
   }, [isLastPlayer, startDiscussion, nextReveal]);
+
+  const handleOnlineReady = useCallback(() => {
+    playButtonClick();
+    markRoleReady();
+  }, [markRoleReady]);
+
+  if (state.isOnline) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center px-4">
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="w-full max-w-sm"
+        >
+          <div className="text-center mb-5">
+            <p className="text-[#A89BC2] text-sm">Room {state.roomCode}</p>
+            <h1 className="text-2xl font-black">Your Secret Card</h1>
+          </div>
+
+          {!revealed ? (
+            <motion.button
+              onClick={handleReveal}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="w-full aspect-[3/4] rounded-2xl relative overflow-hidden
+                         bg-gradient-to-b from-[#2D1B69] to-[#1A0B2E]
+                         border-2 border-[#00F0FF]/30
+                         shadow-[0_0_30px_rgba(0,240,255,0.2)]
+                         flex flex-col items-center justify-center gap-4
+                         transition-all duration-300"
+            >
+              <Eye className="w-16 h-16 text-[#00F0FF]/60" />
+              <p className="text-xl font-bold text-[#A89BC2]">TAP TO REVEAL</p>
+            </motion.button>
+          ) : (
+            <motion.div
+              initial={{ rotateY: 90, opacity: 0 }}
+              animate={{ rotateY: 0, opacity: 1 }}
+              transition={{ duration: 0.4, type: 'spring', stiffness: 200 }}
+              className={`w-full aspect-[3/4] rounded-2xl border-2 flex flex-col items-center justify-center gap-4 p-6
+                         ${currentPlayer?.role === 'CITIZEN'
+                  ? 'border-[#00FF99] shadow-[0_0_30px_rgba(0,255,153,0.3)]'
+                  : currentPlayer?.role === 'SPY'
+                    ? 'border-[#FFD700] shadow-[0_0_30px_rgba(255,215,0,0.3)]'
+                    : 'border-[#FF0055] shadow-[0_0_30px_rgba(255,0,85,0.3)]'
+                }`}
+            >
+              <div className={`px-4 py-1.5 rounded-full text-sm font-bold uppercase tracking-wider
+                             ${currentPlayer?.role === 'CITIZEN'
+                  ? 'bg-[#00FF99]/20 text-[#00FF99]'
+                  : currentPlayer?.role === 'SPY'
+                    ? 'bg-[#FFD700]/20 text-[#FFD700]'
+                    : 'bg-[#FF0055]/20 text-[#FF0055]'
+                }`}>
+                {currentPlayer?.role}
+              </div>
+              <img
+                src={currentPlayer?.role === 'CITIZEN' ? '/assets/card-citizen.png' : '/assets/card-imposter.png'}
+                alt={currentPlayer?.role}
+                className="w-32 h-40 object-contain opacity-80"
+              />
+              <div className="text-center">
+                <p className="text-xs text-[#A89BC2] uppercase tracking-wider mb-1">
+                  {currentPlayer?.role === 'IMPOSTER' ? 'Your Hint' :
+                    currentPlayer?.role === 'SPY' ? 'Your Word' : 'Secret Word'}
+                </p>
+                <p className={`text-2xl font-black ${
+                  currentPlayer?.role === 'CITIZEN' ? 'text-[#00FF99]' :
+                    currentPlayer?.role === 'SPY' ? 'text-[#FFD700]' :
+                      'text-[#FF0055]'
+                }`}>
+                  {currentPlayer?.role === 'CITIZEN' ? currentPlayer?.word :
+                    currentPlayer?.role === 'SPY' ? currentPlayer?.word :
+                      currentPlayer?.hint}
+                </p>
+              </div>
+              {currentPlayer?.role === 'SPY' && (
+                <p className="text-xs text-[#FFD700]/70 text-center">
+                  This is NOT the secret word. Blend in.
+                </p>
+              )}
+            </motion.div>
+          )}
+
+          {revealed && (
+            <button
+              onClick={handleOnlineReady}
+              disabled={onlinePlayer?.roleReady}
+              className="w-full mt-4 py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-3
+                         bg-gradient-to-r from-[#00F0FF] to-[#00B8FF] text-[#1A0B2E]
+                         disabled:opacity-60 disabled:cursor-not-allowed
+                         transform active:scale-95 transition-all"
+            >
+              <CheckCircle2 className="w-5 h-5" />
+              {onlinePlayer?.roleReady ? 'Waiting for others...' : 'I Am Ready'}
+            </button>
+          )}
+        </motion.div>
+      </div>
+    );
+  }
 
   // Privacy Pass Screen
   if (showPrivacy) {

@@ -1,15 +1,19 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useGame } from '@/context/GameContext';
+import { useOnline } from '@/context/OnlineContext';
 import { playButtonClick, playError } from '@/lib/sounds';
 import { Send, AlertTriangle } from 'lucide-react';
 
 export default function ImposterGuessScreen() {
   const { state, submitImposterGuess } = useGame();
+  const { room, submitOnlineGuess } = useOnline();
   const [guess, setGuess] = useState('');
   const [error, setError] = useState('');
 
-  const eliminatedImposter = state.players.find(p => p.role === 'IMPOSTER');
+  const eliminatedImposter = (state.eliminatedPlayer && state.eliminatedPlayer.role === 'IMPOSTER')
+    ? state.eliminatedPlayer
+    : state.players.find(p => p.role === 'IMPOSTER');
 
   const handleSubmit = () => {
     if (!guess.trim()) {
@@ -19,13 +23,34 @@ export default function ImposterGuessScreen() {
     }
 
     playButtonClick();
+    if (state.isOnline) {
+      submitOnlineGuess(guess.trim());
+      return;
+    }
     submitImposterGuess(guess.trim());
   };
 
   const handleSkip = () => {
     playButtonClick();
+    if (state.isOnline) {
+      submitOnlineGuess('');
+      return;
+    }
     submitImposterGuess('');
   };
+
+  if (state.isOnline && room?.guessingPlayerId !== room?.you.id) {
+    const guessingPlayer = room?.players.find(player => player.id === room.guessingPlayerId);
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center px-4 text-center">
+        <AlertTriangle className="w-12 h-12 text-[#FF0055] mb-4" />
+        <h1 className="text-2xl font-black mb-2">Imposter Guess</h1>
+        <p className="text-[#A89BC2]">
+          Waiting for {guessingPlayer?.name || 'the imposter'} to guess the secret word.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4">

@@ -2,13 +2,20 @@ import { motion } from 'framer-motion';
 import { useGame } from '@/context/GameContext';
 import { getStatistics } from '@/lib/storage';
 import { playButtonClick } from '@/lib/sounds';
-import { Play, BarChart3, History, Package, Settings, Shield, Sparkles } from 'lucide-react';
+import { Play, BarChart3, History, Package, Settings, Shield, Sparkles, Wifi } from 'lucide-react';
+
+const HOME_PARTICLES = Array.from({ length: 20 }, (_, index) => ({
+  left: `${(index * 37) % 100}%`,
+  top: `${(index * 61) % 100}%`,
+  duration: 3 + (index % 5) * 0.8,
+  delay: (index % 7) * 0.35,
+}));
 
 export default function HomeScreen() {
   const { setPhase } = useGame();
   const stats = getStatistics();
 
-  const handleNavigate = (phase: 'SETUP' | 'STATISTICS' | 'GAME_HISTORY' | 'WORD_PACKS' | 'SETTINGS' | 'ADMIN') => {
+  const handleNavigate = (phase: 'SETUP' | 'ONLINE_MENU' | 'STATISTICS' | 'GAME_HISTORY' | 'WORD_PACKS' | 'SETTINGS' | 'ADMIN') => {
     playButtonClick();
     setPhase(phase);
   };
@@ -19,22 +26,22 @@ export default function HomeScreen() {
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute inset-0 bg-gradient-to-b from-[#2D1B69]/40 via-[#1A0B2E] to-[#1A0B2E]" />
         {/* Floating particles */}
-        {Array.from({ length: 20 }).map((_, i) => (
+        {HOME_PARTICLES.map((particle, i) => (
           <motion.div
             key={i}
             className="absolute w-1 h-1 bg-cyan-400/30 rounded-full"
             style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
+              left: particle.left,
+              top: particle.top,
             }}
             animate={{
               y: [0, -30, 0],
               opacity: [0.2, 0.6, 0.2],
             }}
             transition={{
-              duration: 3 + Math.random() * 4,
+              duration: particle.duration,
               repeat: Infinity,
-              delay: Math.random() * 3,
+              delay: particle.delay,
             }}
           />
         ))}
@@ -115,7 +122,18 @@ export default function HomeScreen() {
                        transform hover:scale-[1.02] active:scale-95 transition-all duration-200"
           >
             <Play className="w-6 h-6" />
-            PLAY GAME
+            LOCAL GAME
+          </button>
+
+          <button
+            onClick={() => handleNavigate('ONLINE_MENU')}
+            className="w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-3
+                       bg-[#2D1B69]/60 border border-[#00F0FF]/25 text-[#00F0FF]
+                       hover:bg-[#2D1B69]/90 hover:border-[#00F0FF]/50
+                       transform hover:scale-[1.02] active:scale-95 transition-all duration-200"
+          >
+            <Wifi className="w-6 h-6" />
+            ONLINE GAME
           </button>
 
           {/* Secondary Buttons Grid */}

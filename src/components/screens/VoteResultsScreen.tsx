@@ -1,23 +1,17 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '@/context/GameContext';
+import { useOnline } from '@/context/OnlineContext';
 import { playButtonClick } from '@/lib/sounds';
 import { ArrowRight, UserX, Users, Crown } from 'lucide-react';
 
 export default function VoteResultsScreen() {
-  const { state, setPhase } = useGame();
+  const { state, continueFromVoteResults } = useGame();
+  const { room, continueOnlineFromResults } = useOnline();
   const [showDetails, setShowDetails] = useState(false);
-  const [isTie, setIsTie] = useState(false);
-
   const eliminated = state.eliminatedPlayer;
   const voteResults = state.voteResults;
-
-  // Check for tie
-  useEffect(() => {
-    if (!eliminated) {
-      setIsTie(true);
-    }
-  }, [eliminated]);
+  const isTie = !eliminated;
 
   // Auto-show details after delay
   useEffect(() => {
@@ -27,17 +21,11 @@ export default function VoteResultsScreen() {
 
   const handleContinue = () => {
     playButtonClick();
-    if (eliminated?.role === 'IMPOSTER') {
-      // Imposter caught - go to guess phase anyway (as per design doc)
-      setPhase('IMPOSTER_GUESS');
-    } else if (eliminated?.role === 'SPY') {
-      // Spy caught - citizens win
-      // Actually let them guess
-      setPhase('IMPOSTER_GUESS');
-    } else {
-      // Wrong person voted out - imposter might still win
-      setPhase('IMPOSTER_GUESS');
+    if (state.isOnline) {
+      continueOnlineFromResults();
+      return;
     }
+    continueFromVoteResults();
   };
 
   const maxVotes = Math.max(...Object.values(voteResults));
@@ -62,7 +50,7 @@ export default function VoteResultsScreen() {
 
         {/* Results list */}
         <div className="space-y-2 mb-6">
-          {state.players.map((player, i) => {
+          {state.players.filter(p => !p.isEliminated).map((player, i) => {
             const votes = voteResults[player.name] || 0;
             const isEliminated = player.name === eliminated?.name;
             const isMax = votes === maxVotes && votes > 0;
@@ -135,35 +123,25 @@ export default function VoteResultsScreen() {
                 <div className={`p-4 rounded-xl border text-center ${
                   eliminated.role === 'IMPOSTER'
                     ? 'bg-[#00FF99]/10 border-[#00FF99]/30'
-                    : eliminated.role === 'SPY'
-                      ? 'bg-[#FFD700]/10 border-[#FFD700]/30'
-                      : 'bg-[#FF0055]/10 border-[#FF0055]/30'
+                    : 'bg-[#FF0055]/10 border-[#FF0055]/30'
                 }`}>
                   {eliminated.role === 'IMPOSTER' ? (
                     <>
                       <Crown className="w-8 h-8 text-[#00FF99] mx-auto mb-2" />
                       <p className="text-[#00FF99] font-bold">Imposter Caught!</p>
                       <p className="text-sm text-[#A89BC2]">
-                        {eliminated.name} was the Imposter
+                        {eliminated.name} was an Imposter
                       </p>
                       <p className="text-xs text-[#A89BC2]/60 mt-1">
                         But they still get one chance to guess...
                       </p>
                     </>
-                  ) : eliminated.role === 'SPY' ? (
-                    <>
-                      <UserX className="w-8 h-8 text-[#FFD700] mx-auto mb-2" />
-                      <p className="text-[#FFD700] font-bold">Spy Revealed!</p>
-                      <p className="text-sm text-[#A89BC2]">
-                        {eliminated.name} was the Spy
-                      </p>
-                    </>
                   ) : (
                     <>
                       <UserX className="w-8 h-8 text-[#FF0055] mx-auto mb-2" />
-                      <p className="text-[#FF0055] font-bold">Wrong!</p>
+                      <p className="text-[#FF0055] font-bold">Not an Imposter!</p>
                       <p className="text-sm text-[#A89BC2]">
-                        {eliminated.name} was a Citizen
+                        {eliminated.name} was Not an Imposter
                       </p>
                       <p className="text-xs text-[#A89BC2]/60 mt-1">
                         The Imposter still lurks among you...
@@ -177,7 +155,13 @@ export default function VoteResultsScreen() {
         </AnimatePresence>
 
         {/* Continue button */}
-        {showDetails && (
+        {showDetails && state.isOnline && !room?.you.isHost && (
+          <div className="w-full py-4 rounded-xl bg-[#2D1B69]/40 border border-[#00F0FF]/10 text-center text-[#A89BC2]">
+            Waiting for host to continue.
+          </div>
+        )}
+
+        {showDetails && (!state.isOnline || room?.you.isHost) && (
           <motion.button
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -196,5 +180,4 @@ export default function VoteResultsScreen() {
     </div>
   );
 }
-
 

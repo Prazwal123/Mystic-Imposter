@@ -1,7 +1,10 @@
 import { GameProvider, useGame } from '@/context/GameContext';
+import { OnlineProvider } from '@/context/OnlineContext';
 import { AnimatePresence, motion } from 'framer-motion';
 import HomeScreen from '@/components/screens/HomeScreen';
 import SetupScreen from '@/components/screens/SetupScreen';
+import OnlineMenuScreen from '@/components/screens/OnlineMenuScreen';
+import OnlineLobbyScreen from '@/components/screens/OnlineLobbyScreen';
 import RoleRevealScreen from '@/components/screens/RoleRevealScreen';
 import DiscussionScreen from '@/components/screens/DiscussionScreen';
 import VotingScreen from '@/components/screens/VotingScreen';
@@ -46,6 +49,10 @@ function GameRouter() {
         return <AdminScreen key="admin" />;
       case 'WORD_PACKS':
         return <WordPacksScreen key="packs" />;
+      case 'ONLINE_MENU':
+        return <OnlineMenuScreen key="online-menu" />;
+      case 'ONLINE_LOBBY':
+        return <OnlineLobbyScreen key="online-lobby" />;
       default:
         return <HomeScreen key="home" />;
     }
@@ -72,7 +79,9 @@ function GameRouter() {
 function App() {
   return (
     <GameProvider>
-      <GameRouter />
+      <OnlineProvider>
+        <GameRouter />
+      </OnlineProvider>
     </GameProvider>
   );
 }

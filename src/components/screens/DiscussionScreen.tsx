@@ -1,20 +1,25 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useGame } from '@/context/GameContext';
+import { useOnline } from '@/context/OnlineContext';
 import { playButtonClick, playBuzzer } from '@/lib/sounds';
 import { Pause, Play, SkipForward, MessageCircle, AlertTriangle } from 'lucide-react';
 
 export default function DiscussionScreen() {
   const { state, startVoting, pauseGame, resumeGame } = useGame();
+  const { pauseOnlineGame, resumeOnlineGame, startOnlineVoting } = useOnline();
   const [timeLeft, setTimeLeft] = useState(state.discussionTimeLeft);
   const [isPaused, setIsPaused] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const totalTime = state.settings.discussionTimer;
-  const progress = timeLeft / totalTime;
-  const isLowTime = timeLeft <= 10;
+  const displayedTimeLeft = state.isOnline ? state.discussionTimeLeft : timeLeft;
+  const displayedPaused = state.isOnline ? state.isPaused : isPaused;
+  const progress = displayedTimeLeft / totalTime;
+  const isLowTime = displayedTimeLeft <= 10;
 
   useEffect(() => {
+    if (state.isOnline) return;
     if (!isPaused && timeLeft > 0) {
       timerRef.current = setInterval(() => {
         setTimeLeft(prev => {
@@ -30,9 +35,10 @@ export default function DiscussionScreen() {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isPaused, timeLeft]);
+  }, [isPaused, timeLeft, state.isOnline]);
 
   useEffect(() => {
+    if (state.isOnline) return;
     if (timeLeft === 0) {
       // Auto-transition to voting after a short delay
       const timeout = setTimeout(() => {
@@ -40,22 +46,34 @@ export default function DiscussionScreen() {
       }, 2000);
       return () => clearTimeout(timeout);
     }
-  }, [timeLeft, startVoting]);
+  }, [timeLeft, startVoting, state.isOnline]);
 
   const handlePause = () => {
     playButtonClick();
+    if (state.isOnline) {
+      pauseOnlineGame();
+      return;
+    }
     setIsPaused(true);
     pauseGame();
   };
 
   const handleResume = () => {
     playButtonClick();
+    if (state.isOnline) {
+      resumeOnlineGame();
+      return;
+    }
     setIsPaused(false);
     resumeGame();
   };
 
   const handleEndEarly = () => {
     playButtonClick();
+    if (state.isOnline) {
+      startOnlineVoting();
+      return;
+    }
     startVoting();
   };
 
@@ -139,7 +157,7 @@ export default function DiscussionScreen() {
             className={`text-4xl font-black font-mono ${isLowTime ? 'text-[#FF0055]' : 'text-white'}`}
             style={isLowTime ? { textShadow: '0 0 10px rgba(255,0,85,0.5)' } : {}}
           >
-            {formatTime(timeLeft)}
+            {formatTime(displayedTimeLeft)}
           </motion.span>
           <span className="text-xs text-[#A89BC2] mt-1">remaining</span>
         </div>
@@ -186,7 +204,7 @@ export default function DiscussionScreen() {
       >
         <p className="text-xs text-[#A89BC2] mb-2 uppercase tracking-wider">Players</p>
         <div className="flex flex-wrap gap-2">
-          {state.players.map((player) => (
+          {state.players.filter(p => !p.isEliminated).map((player) => (
             <div
               key={player.id}
               className="px-3 py-1.5 rounded-full bg-[#2D1B69]/60 border border-[#00F0FF]/10 text-sm text-[#A89BC2]"
@@ -204,12 +222,14 @@ export default function DiscussionScreen() {
         transition={{ delay: 0.5 }}
         className="flex items-center gap-3"
       >
-        {isPaused ? (
+        {displayedPaused ? (
           <button
             onClick={handleResume}
+            disabled={state.isOnline && !state.isHost}
             className="px-6 py-3 rounded-xl font-medium flex items-center gap-2
                        bg-[#00FF99]/20 border border-[#00FF99]/40 text-[#00FF99]
-                       hover:bg-[#00FF99]/30 transform active:scale-95 transition-all"
+                       hover:bg-[#00FF99]/30 transform active:scale-95 transition-all
+                       disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Play className="w-5 h-5" />
             Resume
@@ -217,9 +237,11 @@ export default function DiscussionScreen() {
         ) : (
           <button
             onClick={handlePause}
+            disabled={state.isOnline && !state.isHost}
             className="px-6 py-3 rounded-xl font-medium flex items-center gap-2
                        bg-[#2D1B69] border border-[#00F0FF]/20 text-[#A89BC2]
-                       hover:bg-[#3D2B79] transform active:scale-95 transition-all"
+                       hover:bg-[#3D2B79] transform active:scale-95 transition-all
+                       disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Pause className="w-5 h-5" />
             Pause
@@ -228,9 +250,11 @@ export default function DiscussionScreen() {
 
         <button
           onClick={handleEndEarly}
+          disabled={state.isOnline && !state.isHost}
           className="px-6 py-3 rounded-xl font-medium flex items-center gap-2
                      bg-[#FF0055]/20 border border-[#FF0055]/40 text-[#FF0055]
-                     hover:bg-[#FF0055]/30 transform active:scale-95 transition-all"
+                     hover:bg-[#FF0055]/30 transform active:scale-95 transition-all
+                     disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <SkipForward className="w-5 h-5" />
           Vote Now
@@ -238,7 +262,7 @@ export default function DiscussionScreen() {
       </motion.div>
 
       {/* Time up overlay */}
-      {timeLeft === 0 && (
+      {displayedTimeLeft === 0 && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
