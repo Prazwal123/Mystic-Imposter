@@ -41,10 +41,13 @@ const OnlineContext = createContext<OnlineContextValue | null>(null);
 
 function getSocketUrl() {
   const configured = import.meta.env.VITE_SOCKET_URL as string | undefined;
-  if (configured) return configured;
+  if (configured) return configured.replace(/\/$/, '');
   if (import.meta.env.DEV) return 'http://localhost:3001';
   return window.location.origin;
 }
+
+const ONLINE_SERVER_UNAVAILABLE_MESSAGE =
+  'Online server is unavailable. Deploy the Node Socket.IO server, or set VITE_SOCKET_URL to its public URL.';
 
 function buildPlayers(snapshot: OnlineRoomSnapshot): Player[] {
   return snapshot.players.map(player => {
@@ -116,8 +119,9 @@ export function OnlineProvider({ children }: { children: React.ReactNode }) {
     const socket = io(getSocketUrl(), {
       autoConnect: false,
       reconnection: true,
-      reconnectionAttempts: Infinity,
+      reconnectionAttempts: 5,
       reconnectionDelay: 700,
+      timeout: 8000,
       transports: ['websocket', 'polling'],
     });
 
@@ -132,8 +136,16 @@ export function OnlineProvider({ children }: { children: React.ReactNode }) {
       }
     });
     socket.on('disconnect', () => setStatus('disconnected'));
+    socket.on('connect_error', () => {
+      setStatus('reconnecting');
+      setError(ONLINE_SERVER_UNAVAILABLE_MESSAGE);
+    });
     socket.io.on('reconnect_attempt', () => setStatus('reconnecting'));
     socket.io.on('reconnect', () => setStatus('connected'));
+    socket.io.on('reconnect_failed', () => {
+      setStatus('disconnected');
+      setError(ONLINE_SERVER_UNAVAILABLE_MESSAGE);
+    });
 
     socket.on('room:state', (snapshot: OnlineRoomSnapshot) => {
       storePlayerToken(snapshot.code, snapshot.you.token);

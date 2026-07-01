@@ -137,6 +137,7 @@ export interface GameState {
   phase: GamePhase;
   settings: GameSettings;
   players: Player[];
+  previousImposterIds: string[];
   secretWord: string;
   currentPlayerIndex: number;
   revealIndex: number;

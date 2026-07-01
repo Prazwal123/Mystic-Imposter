@@ -10,6 +10,7 @@ const PORT = Number(process.env.PORT || 3001);
 const ROOM_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const ROOM_IDLE_TIMEOUT_MS = 30 * 60 * 1000;
 const EMPTY_ROOM_TIMEOUT_MS = 5 * 60 * 1000;
+const rooms = new Map();
 
 const defaultWordPool = [
   { word: 'Elephant', hint: 'Big ears' },
@@ -23,6 +24,14 @@ const defaultWordPool = [
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '1mb' }));
+
+app.get('/health', (_req, res) => {
+  res.json({
+    ok: true,
+    service: 'mystic-imposter-online',
+    rooms: rooms.size,
+  });
+});
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const distPath = path.resolve(__dirname, '../dist');
@@ -42,8 +51,6 @@ const io = new Server(httpServer, {
     methods: ['GET', 'POST'],
   },
 });
-
-const rooms = new Map();
 
 function createRoomCode() {
   const length = randomInt(6, 9);
@@ -220,6 +227,22 @@ function shuffle(items) {
   return copy;
 }
 
+function selectImposters(players, imposterCount, previousImposterIds = []) {
+  const previousIds = new Set(previousImposterIds);
+  const selectionCount = Math.min(Math.max(0, imposterCount), players.length);
+  const eligiblePlayers = players.filter(player => !previousIds.has(player.id));
+
+  if (eligiblePlayers.length >= selectionCount) {
+    return shuffle(eligiblePlayers).slice(0, selectionCount);
+  }
+
+  const repeatPlayers = players.filter(player => previousIds.has(player.id));
+  return [
+    ...eligiblePlayers,
+    ...shuffle(repeatPlayers).slice(0, selectionCount - eligiblePlayers.length),
+  ];
+}
+
 function choose(items) {
   return items[randomInt(items.length)];
 }
@@ -353,8 +376,9 @@ function startGame(room, wordPool) {
   const blind = mode === 'BLIND_IMPOSTER';
   if (hasSpy) imposterCount = 1;
 
+  const selectedImposters = selectImposters(players, imposterCount, room.previousImposterIds);
+  const imposters = new Set(selectedImposters.map(player => player.id));
   const shuffledPlayers = shuffle(players);
-  const imposters = new Set(shuffledPlayers.slice(0, imposterCount).map(player => player.id));
   let spyId = null;
   if (hasSpy) {
     const spyCandidate = shuffledPlayers.find(player => !imposters.has(player.id));
@@ -370,6 +394,7 @@ function startGame(room, wordPool) {
   room.voteResults = {};
   room.eliminatedPlayerId = null;
   room.guessingPlayerId = null;
+  room.previousImposterIds = selectedImposters.map(player => player.id);
   room.chaosRule = mode === 'CHAOS_MODE' ? choose([
     'One-word clues only',
     'Speak in questions only',
@@ -436,6 +461,7 @@ io.on('connection', socket => {
       timer: null,
       createdAt: Date.now(),
       lastActivityAt: Date.now(),
+      previousImposterIds: [],
     };
     rooms.set(code, room);
     socket.join(code);

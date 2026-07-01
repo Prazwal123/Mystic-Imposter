@@ -1,5 +1,41 @@
 # React + TypeScript + Vite
 
+## Production Deployment
+
+Online rooms require the Socket.IO server in `server/index.mjs`. A static-only
+deploy can load the app UI, but creating or joining rooms will fail because
+`/socket.io/` is not available.
+
+Use one of these deployment setups:
+
+1. Deploy the full Node app on a host that supports long-running Node processes
+   and WebSockets, then point your domain to it:
+
+   ```bash
+   npm install
+   npm run build
+   npm start
+   ```
+
+   The server serves `dist/`, Socket.IO, and `/health` from the same origin.
+
+2. Keep the React frontend on a static host and deploy `server/index.mjs` on a
+   separate WebSocket-capable Node host. Set the frontend build variable to the
+   public server URL before building:
+
+   ```bash
+   VITE_SOCKET_URL=https://your-online-server.example.com npm run build
+   ```
+
+   On Windows PowerShell:
+
+   ```powershell
+   $env:VITE_SOCKET_URL="https://your-online-server.example.com"; npm run build
+   ```
+
+For Vercel static/frontend hosting, option 2 is required because this online
+game uses persistent Socket.IO connections.
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:

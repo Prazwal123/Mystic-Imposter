@@ -25,6 +25,7 @@ const initialState: GameState = {
   phase: 'MENU',
   settings: { ...defaultSettings },
   players: [],
+  previousImposterIds: [],
   secretWord: '',
   currentPlayerIndex: 0,
   revealIndex: 0,
@@ -106,8 +107,20 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         imposterCount = 1; // Spy mode has 1 imposter + 1 spy
       }
 
-      const playerIndices = roles.map((_, index) => index);
-      const imposterIndices = getSecureRandomItems(playerIndices, imposterCount);
+      const playerCandidates = roles.map((_, index) => ({ id: `player-${index}`, index }));
+      const previousImposterIds = new Set(state.previousImposterIds || []);
+      const eligibleCandidates = playerCandidates.filter(player => !previousImposterIds.has(player.id));
+      const selectionCount = Math.min(Math.max(0, imposterCount), playerCandidates.length);
+      const imposterCandidates = eligibleCandidates.length >= selectionCount
+        ? getSecureRandomItems(eligibleCandidates, selectionCount)
+        : [
+            ...eligibleCandidates,
+            ...getSecureRandomItems(
+              playerCandidates.filter(player => previousImposterIds.has(player.id)),
+              selectionCount - eligibleCandidates.length
+            ),
+          ];
+      const imposterIndices = imposterCandidates.map(player => player.index);
       imposterIndices.forEach(index => {
         roles[index] = 'IMPOSTER';
       });
@@ -166,6 +179,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         votingTimeLeft: settings.votingTimer,
         chaosRule,
         isPaused: false,
+        previousImposterIds: imposterCandidates.map(player => player.id),
       };
     }
 
@@ -293,6 +307,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       return {
         ...initialState,
         settings: state.settings,
+        previousImposterIds: state.previousImposterIds,
       };
 
     case 'LOAD_SAVED_STATE':
