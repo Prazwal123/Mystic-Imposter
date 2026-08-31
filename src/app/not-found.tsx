@@ -3,6 +3,12 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: '404 — Page Not Found',
+  description:
+    'This page could not be found on the Prazwal Bhusal portfolio. Head back to the homepage to find what you are looking for.',
+  robots: {
+    index: false,
+    follow: true,
+  },
 }
 
 export default function NotFound() {

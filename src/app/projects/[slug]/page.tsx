@@ -13,11 +13,22 @@ export async function generateMetadata(
 ): Promise<Metadata> {
   const { slug } = await props.params
   const project = getProjectBySlug(slug)
-  if (!project) return {}
+  if (!project) {
+    return {
+      title: 'Project Not Found',
+      description: 'This project could not be found in the Prazwal Bhusal portfolio.',
+      robots: { index: false, follow: true },
+    }
+  }
   return {
     title: project.title,
     description: project.shortDescription,
     alternates: { canonical: `/projects/${slug}` },
+    openGraph: {
+      title: `${project.title} | Prazwal Bhusal`,
+      description: project.shortDescription,
+      url: `/projects/${slug}`,
+    },
   }
 }
 

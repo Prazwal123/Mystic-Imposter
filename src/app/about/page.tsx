@@ -60,6 +60,41 @@ export default function AboutPage() {
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-16">
 
+        {/* ── Identity paragraph (GEO / AI search optimisation) ────────────
+            Written as plain factual sentences so AI search engines can lift
+            and cite this accurately. Keep this section free of marketing
+            language. Update it whenever factual details change.
+        ──────────────────────────────────────────────────────────────────── */}
+        <section aria-labelledby="identity-heading" id="about-identity">
+          <h2
+            id="identity-heading"
+            className="text-2xl font-bold text-[var(--text-primary)] mb-4"
+          >
+            Who I Am
+          </h2>
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6 space-y-3">
+            <p className="text-[var(--text-secondary)] leading-relaxed">
+              Prazwal Bhusal is a student from Kathmandu, Nepal, currently pursuing a
+              Bachelor of Information Technology at Padmashree College. His primary
+              areas of study and interest are cybersecurity, computer networking, and
+              software development, with additional interest in artificial intelligence
+              and emerging technologies.
+            </p>
+            <p className="text-[var(--text-secondary)] leading-relaxed">
+              He goes by the online name <strong className="text-[var(--text-primary)] font-medium">Mystic</strong> and
+              maintains profiles on GitHub (Prazwal123), LinkedIn (prazwal-bhusal), and
+              Instagram (@mysticplbl). His personal website is{' '}
+              <a
+                href="https://prazwalbhusal.com.np"
+                className="text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors"
+              >
+                prazwalbhusal.com.np
+              </a>
+              .
+            </p>
+          </div>
+        </section>
+
         {/* ── Bio ──────────────────────────────────────────────────────────── */}
         <section aria-labelledby="bio-heading">
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-12">
@@ -177,12 +212,12 @@ export default function AboutPage() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4 text-sm">
-                  <div className="rounded-lg bg-[var(--bg-primary)] border border-[var(--border)] px-4 py-3">
+                  <div className="rounded-xl bg-[var(--bg-primary)] border border-[var(--border)] px-4 py-3">
                     <p className="text-[var(--text-muted)] text-xs mb-0.5">Start Year</p>
                     {/* TODO: Replace with your actual start year */}
                     <p className="text-[var(--text-secondary)] italic">To be added</p>
                   </div>
-                  <div className="rounded-lg bg-[var(--bg-primary)] border border-[var(--border)] px-4 py-3">
+                  <div className="rounded-xl bg-[var(--bg-primary)] border border-[var(--border)] px-4 py-3">
                     <p className="text-[var(--text-muted)] text-xs mb-0.5">Expected Graduation</p>
                     {/* TODO: Replace with your expected graduation year */}
                     <p className="text-[var(--text-secondary)] italic">To be added</p>
@@ -190,7 +225,7 @@ export default function AboutPage() {
                 </div>
 
                 {/* TODO: Add relevant achievements, certifications, or academic projects here */}
-                <div className="mt-4 rounded-lg border border-dashed border-[var(--border-strong)] px-4 py-3">
+                <div className="mt-4 rounded-xl border border-dashed border-[var(--border-strong)] px-4 py-3">
                   <p className="text-[var(--text-muted)] text-xs">
                     📌 Achievements, certifications, and academic projects will be added here.
                   </p>

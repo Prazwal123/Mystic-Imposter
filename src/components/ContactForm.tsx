@@ -229,13 +229,17 @@ export default function ContactForm() {
       {(status === 'error') && (
         <p role="alert" className="text-xs text-red-400 text-center">
           {(errors as Record<string, string | undefined>)._server
-            ?? 'Something went wrong. Please try again or email me directly at '}
-          {!(errors as Record<string, string | undefined>)._server && (
-            <a href="mailto:prazwal.bhusal357@gmail.com" className="underline">
-              prazwal.bhusal357@gmail.com
-            </a>
-          )}
-          {!(errors as Record<string, string | undefined>)._server && '.'}
+            ? (errors as Record<string, string | undefined>)._server
+            : (
+              <>
+                Something went wrong. Please try again or email me directly at{' '}
+                <a href="mailto:prazwal.bhusal357@gmail.com" className="underline">
+                  prazwal.bhusal357@gmail.com
+                </a>
+                .
+              </>
+            )
+          }
         </p>
       )}
 

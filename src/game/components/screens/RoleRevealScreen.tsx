@@ -100,11 +100,20 @@ export default function RoleRevealScreen() {
                 }`}>
                 {currentPlayer?.role}
               </div>
-              <img
-                src={currentPlayer?.role === 'CITIZEN' ? '/assets/card-citizen.png' : '/assets/card-imposter.png'}
-                alt={currentPlayer?.role}
-                className="w-32 h-40 object-contain opacity-80"
-              />
+              <picture>
+                <source
+                  srcSet={currentPlayer?.role === 'CITIZEN' ? '/assets/card-citizen.webp' : '/assets/card-imposter.webp'}
+                  type="image/webp"
+                />
+                <img
+                  src={currentPlayer?.role === 'CITIZEN' ? '/assets/card-citizen.png' : '/assets/card-imposter.png'}
+                  alt={currentPlayer?.role === 'CITIZEN' ? 'Citizen role card' : 'Imposter role card'}
+                  width={128}
+                  height={160}
+                  loading="lazy"
+                  className="w-32 h-40 object-contain opacity-80"
+                />
+              </picture>
               <div className="text-center">
                 <p className="text-xs text-[#A89BC2] uppercase tracking-wider mb-1">
                   {currentPlayer?.role === 'IMPOSTER' ? 'Your Hint' :
@@ -315,11 +324,20 @@ export default function RoleRevealScreen() {
               </div>
 
               {/* Card image */}
-              <img
-                src={currentPlayer?.role === 'CITIZEN' ? '/assets/card-citizen.png' : '/assets/card-imposter.png'}
-                alt={currentPlayer?.role}
-                className="w-32 h-40 object-contain opacity-80"
-              />
+              <picture>
+                <source
+                  srcSet={currentPlayer?.role === 'CITIZEN' ? '/assets/card-citizen.webp' : '/assets/card-imposter.webp'}
+                  type="image/webp"
+                />
+                <img
+                  src={currentPlayer?.role === 'CITIZEN' ? '/assets/card-citizen.png' : '/assets/card-imposter.png'}
+                  alt={currentPlayer?.role === 'CITIZEN' ? 'Citizen role card' : 'Imposter role card'}
+                  width={128}
+                  height={160}
+                  loading="lazy"
+                  className="w-32 h-40 object-contain opacity-80"
+                />
+              </picture>
 
               {/* Word or Hint */}
               <div className="text-center">

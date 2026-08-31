@@ -38,6 +38,54 @@
   --gradient-to: #a78bfa;
 }
 
+/* ─── Shadow tokens ────────────────────────────────────────────────── */
+/*
+ * These are reference values. Tailwind utility classes are used directly
+ * in components (e.g. shadow-card-hover), but these document the intent.
+ *
+ * --shadow-card       : subtle resting shadow on card elements
+ * --shadow-card-hover : accent-tinted lift shadow on interactive cards
+ * --shadow-nav        : shadow under the sticky navbar when scrolled
+ */
+:root,
+[data-theme="light"] {
+  --shadow-card:       0 1px 3px 0 rgb(0 0 0 / 0.07), 0 1px 2px -1px rgb(0 0 0 / 0.07);
+  --shadow-card-hover: 0 10px 40px -12px rgb(99 102 241 / 0.18);
+  --shadow-nav:        0 1px 0 0 var(--border);
+}
+
+[data-theme="dark"] {
+  --shadow-card:       0 1px 3px 0 rgb(0 0 0 / 0.3),  0 1px 2px -1px rgb(0 0 0 / 0.3);
+  --shadow-card-hover: 0 10px 40px -12px rgb(129 140 248 / 0.20);
+  --shadow-nav:        0 1px 0 0 var(--border);
+}
+
+/* ─── Spacing scale (reference) ────────────────────────────────────── */
+/*
+ * All pages use these spacing patterns consistently via Tailwind classes:
+ *
+ * Section vertical padding   : py-16 sm:py-24   (page hero/header sections)
+ *                              py-20             (content sections on homepage)
+ *                              py-16             (content sections on inner pages)
+ * Horizontal page padding    : px-4 sm:px-6 lg:px-8
+ * Content max-width          : max-w-6xl mx-auto
+ * Card internal padding      : p-6  (standard cards)
+ *                              p-5  (compact cards e.g. skill/interest tiles)
+ *                              p-8  (wide feature cards)
+ * Card gap / grid gap        : gap-4  (compact grids)
+ *                              gap-6  (standard card grids)
+ *                              gap-12 (two-column content layouts)
+ * Stack spacing inside cards : space-y-4 (standard)
+ *                              space-y-3 (tight)
+ *
+ * Border radius scale (do not mix levels on the same visual element):
+ *   rounded-full  → dots, avatars, status badges, pills
+ *   rounded-2xl   → cards, panels, full-bleed sections
+ *   rounded-xl    → buttons (primary/secondary), form inputs, inner boxes
+ *   rounded-lg    → small inline chips inside cards, number badges
+ *   rounded-md    → nav link hover states
+ */
+
 /* ─── CSS custom property utilities for Tailwind ──────────────────── */
 @theme inline {
   --color-bg-primary: var(--bg-primary);

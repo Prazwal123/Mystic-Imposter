@@ -24,9 +24,6 @@ export const metadata: Metadata = {
   description:
     'Personal portfolio of Prazwal Bhusal, an IT student from Kathmandu, Nepal interested in cybersecurity, networking, software development, AI, and technology.',
   metadataBase: new URL('https://prazwalbhusal.com.np'),
-  alternates: {
-    canonical: '/',
-  },
   keywords: [
     'Prazwal Bhusal',
     'IT Student',
@@ -50,12 +47,23 @@ export const metadata: Metadata = {
     title: 'Prazwal Bhusal | IT Student & Technology Enthusiast',
     description:
       'Personal portfolio of Prazwal Bhusal, an IT student from Kathmandu, Nepal interested in cybersecurity, networking, software development, AI, and technology.',
+    images: [
+      {
+        url: '/og-image.svg',
+        width: 1200,
+        height: 630,
+        alt: 'Prazwal Bhusal — IT Student & Technology Enthusiast',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Prazwal Bhusal | IT Student & Technology Enthusiast',
     description:
       'Personal portfolio of Prazwal Bhusal, an IT student from Kathmandu, Nepal.',
+    // TODO: Replace og-image.svg with a real 1200×630 PNG (og-image.png) for best
+    // social sharing compatibility. Twitter/X requires a PNG or JPG, not SVG.
+    images: ['/og-image.svg'],
   },
   robots: {
     index: true,

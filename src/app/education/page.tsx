@@ -143,12 +143,12 @@ export default function EducationPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                   <div className="rounded-xl bg-[var(--bg-primary)] border border-[var(--border)] px-4 py-3">
                     <p className="text-[var(--text-muted)] text-xs mb-1">Start Year</p>
-                    {/* TODO: Add your actual start year */}
+                    {/* TODO: Replace with actual start year */}
                     <p className="text-[var(--text-secondary)] text-sm italic">To be added</p>
                   </div>
                   <div className="rounded-xl bg-[var(--bg-primary)] border border-[var(--border)] px-4 py-3">
                     <p className="text-[var(--text-muted)] text-xs mb-1">Expected Graduation</p>
-                    {/* TODO: Add your expected graduation year */}
+                    {/* TODO: Replace with expected graduation year */}
                     <p className="text-[var(--text-secondary)] text-sm italic">To be added</p>
                   </div>
                 </div>

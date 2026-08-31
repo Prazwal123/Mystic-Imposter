@@ -56,11 +56,16 @@ export default function HomeScreen() {
           transition={{ duration: 0.6, type: 'spring' }}
           className="mb-4"
         >
-          <img
-            src="/assets/logo.png"
-            alt="Mystic Imposter"
-            className="w-32 h-32 object-contain drop-shadow-[0_0_20px_rgba(0,240,255,0.4)]"
-          />
+          <picture>
+            <source srcSet="/assets/logo.webp" type="image/webp" />
+            <img
+              src="/assets/logo.png"
+              alt="Mystic Imposter"
+              width={128}
+              height={128}
+              className="w-32 h-32 object-contain drop-shadow-[0_0_20px_rgba(0,240,255,0.4)]"
+            />
+          </picture>
         </motion.div>
 
         {/* Title */}

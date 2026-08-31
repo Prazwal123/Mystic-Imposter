@@ -12,6 +12,53 @@ export const metadata: Metadata = {
   alternates: { canonical: '/' },
 }
 
+// JSON-LD Person schema — used by Google Knowledge Graph and AI search engines
+// to identify Prazwal Bhusal and connect his profiles across the web.
+const personSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  name: 'Prazwal Bhusal',
+  alternateName: 'Mystic',
+  url: 'https://prazwalbhusal.com.np',
+  image: 'https://prazwalbhusal.com.np/og-image.svg',
+  jobTitle: 'IT Student',
+  description:
+    'Prazwal Bhusal is an IT student pursuing a Bachelor of Information Technology at Padmashree College in Kathmandu, Nepal. His primary areas of focus are cybersecurity, computer networking, and software development.',
+  email: 'prazwal.bhusal357@gmail.com',
+  nationality: {
+    '@type': 'Country',
+    name: 'Nepal',
+  },
+  address: {
+    '@type': 'PostalAddress',
+    addressLocality: 'Kathmandu',
+    addressCountry: 'NP',
+  },
+  alumniOf: {
+    '@type': 'CollegeOrUniversity',
+    name: 'Padmashree College',
+    address: {
+      '@type': 'PostalAddress',
+      addressLocality: 'Kathmandu',
+      addressCountry: 'NP',
+    },
+  },
+  knowsAbout: [
+    'Cybersecurity',
+    'Computer Networking',
+    'Software Development',
+    'Web Development',
+    'Artificial Intelligence',
+    'Information Technology',
+  ],
+  sameAs: [
+    'https://github.com/Prazwal123',
+    'https://www.linkedin.com/in/prazwal-bhusal/',
+    'https://www.instagram.com/mysticplbl/',
+    'https://www.facebook.com/PrazwalBhusal/',
+  ],
+}
+
 export default function HomePage() {
   const featured = getFeaturedProjects()
   // Show the first two categories on the home page as a teaser
@@ -19,6 +66,11 @@ export default function HomePage() {
 
   return (
     <>
+      {/* JSON-LD structured data — not visible to users */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(personSchema) }}
+      />
       {/* ── Hero ──────────────────────────────────────────────────────────── */}
       <Hero />
 

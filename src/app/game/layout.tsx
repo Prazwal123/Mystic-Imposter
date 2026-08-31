@@ -4,7 +4,16 @@ import Link from 'next/link'
 export const metadata: Metadata = {
   title: 'Mystic Imposter | Prazwal Bhusal',
   description:
-    'Mystic Imposter — a Nepal-themed social deduction word game featuring 500+ culturally grounded word entries with Nepanglish-style hints, multiple game modes, and an admin panel.',
+    'Mystic Imposter — a Nepal-themed social deduction word game by Prazwal Bhusal, featuring 500+ culturally grounded word entries with Nepanglish-style hints, multiple game modes, and an admin panel.',
+  alternates: {
+    canonical: '/game',
+  },
+  openGraph: {
+    title: 'Mystic Imposter | Prazwal Bhusal',
+    description:
+      'A Nepal-themed social deduction word game by Prazwal Bhusal — 500+ culturally grounded words, Nepanglish hints, and multiple game modes.',
+    url: '/game',
+  },
 }
 
 export default function GameLayout({
