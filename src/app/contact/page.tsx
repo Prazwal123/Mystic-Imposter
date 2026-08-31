@@ -209,8 +209,7 @@ export default function ContactPage() {
                 Send a Message
               </h2>
               <p className="text-[var(--text-muted)] text-xs mb-6">
-                Note: The contact form is currently a UI prototype. To reach me directly, use
-                the email address or phone number listed here.
+                Fill in the form below and I&apos;ll receive your message directly by email.
               </p>
               <ContactForm />
             </div>

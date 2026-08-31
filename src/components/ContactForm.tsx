@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, FormEvent } from 'react'
+import { sendContactEmail } from '@/app/actions/contact'
 
 interface FormState {
   name: string
@@ -36,14 +37,15 @@ export default function ContactForm() {
 
     setStatus('submitting')
 
-    // TODO: Connect to a real email service or API route.
-    // Example: POST to /api/contact with the form data.
-    // For now this simulates a network delay.
-    await new Promise((r) => setTimeout(r, 1200))
-    setStatus('success')
+    const result = await sendContactEmail(form)
 
-    // Reset form after success
-    setForm(initialState)
+    if (result.success) {
+      setStatus('success')
+      setForm(initialState)
+    } else {
+      setStatus('error')
+      setErrors((prev) => ({ ...prev, _server: result.error } as Partial<FormState>))
+    }
   }
 
   function handleChange(
@@ -224,13 +226,16 @@ export default function ContactForm() {
         )}
       </button>
 
-      {status === 'error' && (
+      {(status === 'error') && (
         <p role="alert" className="text-xs text-red-400 text-center">
-          Something went wrong. Please try again or email me directly at{' '}
-          <a href="mailto:prazwal.bhusal357@gmail.com" className="underline">
-            prazwal.bhusal357@gmail.com
-          </a>
-          .
+          {(errors as Record<string, string | undefined>)._server
+            ?? 'Something went wrong. Please try again or email me directly at '}
+          {!(errors as Record<string, string | undefined>)._server && (
+            <a href="mailto:prazwal.bhusal357@gmail.com" className="underline">
+              prazwal.bhusal357@gmail.com
+            </a>
+          )}
+          {!(errors as Record<string, string | undefined>)._server && '.'}
         </p>
       )}
 
